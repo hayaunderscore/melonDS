@@ -19,6 +19,7 @@
 #pragma once
 
 #include "GPU2D.h"
+#include "GPU.h"
 
 namespace GPU2D
 {
@@ -33,19 +34,19 @@ public:
     void DrawSprites(u32 line, Unit* unit) override;
     void VBlankEnd(Unit* unitA, Unit* unitB) override;
 private:
-    alignas(8) u32 BGOBJLine[256*3];
+    alignas(8) u32 BGOBJLine[GPU::WideScreenWidth*3];
     u32* _3DLine;
 
-    alignas(8) u8 WindowMask[256];
+    alignas(8) u8 WindowMask[GPU::WideScreenWidth];
 
-    alignas(8) u32 OBJLine[2][256];
-    alignas(8) u8 OBJIndex[2][256];
-    alignas(8) u8 OBJWindow[2][256];
+    alignas(8) u32 OBJLine[2][GPU::WideScreenWidth];
+    alignas(8) u8 OBJIndex[2][GPU::WideScreenWidth];
+    alignas(8) u8 OBJWindow[2][GPU::WideScreenWidth];
 
     u32 NumSprites[2];
 
     u8* CurBGXMosaicTable;
-    u8 MosaicTable[16][256];
+    u8 MosaicTable[16][GPU::WideScreenWidth];
 
     u32 ColorBlend4(u32 val1, u32 val2, u32 eva, u32 evb);
     u32 ColorBlend5(u32 val1, u32 val2);

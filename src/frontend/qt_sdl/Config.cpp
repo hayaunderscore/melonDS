@@ -213,7 +213,7 @@ ConfigEntry ConfigFile[] =
 
     {"JoystickID", 0, &JoystickID, 0, true},
 
-    {"WindowWidth",  0, &WindowWidth,  256, true},
+    {"WindowWidth",  0, &WindowWidth,  336, true},
     {"WindowHeight", 0, &WindowHeight, 384, true},
     {"WindowMax",    1, &WindowMaximized, false, true},
 

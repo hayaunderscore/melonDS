@@ -64,7 +64,7 @@ bool GLCompositor::Init()
 #define SETVERTEX(i, x, y, offset) \
     CompVertices[i].Position[0] = x; \
     CompVertices[i].Position[1] = y + offset; \
-    CompVertices[i].Texcoord[0] = (x + 1.f) * (256.f / 2.f); \
+    CompVertices[i].Texcoord[0] = (x + 1.f) * (GPU::WideScreenWidth / 2.f); \
     CompVertices[i].Texcoord[1] = (y + 1.f) * (384.f / 2.f)
 
     const float padOffset = 1.f/(192*2.f+2.f)*2.f;
@@ -106,7 +106,7 @@ bool GLCompositor::Init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8UI, 256*3 + 1, 192*2, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8UI, GPU::WideScreenWidth*3 + 1, 192*2, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, NULL);
 
     glGenTextures(2, CompScreenOutputTex);
     for (int i = 0; i < 2; i++)
@@ -146,7 +146,7 @@ void GLCompositor::SetRenderSettings(RenderSettings& settings)
     int scale = settings.GL_ScaleFactor;
 
     Scale = scale;
-    ScreenW = 256 * scale;
+    ScreenW = GPU::WideScreenWidth * scale;
     ScreenH = (384+2) * scale;
 
     for (int i = 0; i < 2; i++)
@@ -208,9 +208,9 @@ void GLCompositor::RenderFrame()
 
     if (GPU::Framebuffer[frontbuf][0] && GPU::Framebuffer[frontbuf][1])
     {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256*3 + 1, 192, GL_RGBA_INTEGER,
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GPU::WideScreenWidth*3 + 1, 192, GL_RGBA_INTEGER,
                         GL_UNSIGNED_BYTE, GPU::Framebuffer[frontbuf][0]);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192, 256*3 + 1, 192, GL_RGBA_INTEGER,
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192, GPU::WideScreenWidth*3 + 1, 192, GL_RGBA_INTEGER,
                         GL_UNSIGNED_BYTE, GPU::Framebuffer[frontbuf][1]);
     }
 

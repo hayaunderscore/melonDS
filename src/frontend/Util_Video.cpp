@@ -23,7 +23,7 @@
 #include <algorithm>
 
 #include "FrontendUtil.h"
-
+#include "../GPU.h"
 
 namespace Frontend
 {
@@ -144,9 +144,9 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
 
     float refpoints[6][2] =
     {
-        {0, 0}, {256, 192},
-        {0, 0}, {256, 192},
-        {0, 0}, {256, 192}
+        {0, 0}, {GPU::WideScreenWidth, 192},
+        {0, 0}, {GPU::WideScreenWidth, 192},
+        {0, 0}, {GPU::WideScreenWidth, 192}
     };
 
     int layout = screenLayout == screenLayout_Natural
@@ -162,8 +162,8 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
     M23_Identity(BotScreenMtx);
     M23_Identity(HybScreenMtx);
 
-    M23_Translate(TopScreenMtx, -256/2, -192/2);
-    M23_Translate(BotScreenMtx, -256/2, -192/2);
+    M23_Translate(TopScreenMtx, -GPU::WideScreenWidth/2, -192/2);
+    M23_Translate(BotScreenMtx, -GPU::WideScreenWidth/2, -192/2);
 
     M23_Scale(TopScreenMtx, topAspect, 1);
     M23_Scale(BotScreenMtx, botAspect, 1);
@@ -223,8 +223,8 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
 
             bool moveV = rotation % 2 == layout;
 
-            float offsetBot = (moveV ? 192.0 : 256.0 * botAspect) / 2.0 + screenGap / 2.0;
-            float offsetTop = -((moveV ? 192.0 : 256.0 * topAspect) / 2.0 + screenGap / 2.0);
+            float offsetBot = (moveV ? 192.0 : GPU::WideScreenWidth * botAspect) / 2.0 + screenGap / 2.0;
+            float offsetTop = -((moveV ? 192.0 : GPU::WideScreenWidth * topAspect) / 2.0 + screenGap / 2.0);
 
             if ((rotation == 1 || rotation == 2) ^ swapScreens)
             {
@@ -264,12 +264,12 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
                 if (HybEnable)
                 {
                     hybScale = layout == 0
-                        ? (4 * vSize) / (3 * hSize)
-                        : (4 * hSize) / (3 * vSize);
+                        ? (GPU::WideScreenWidth * vSize) / (256 * hSize)
+                        : (GPU::WideScreenWidth * hSize) / (256 * vSize);
                     if (layout == 0)
-                        hSize += (vSize * 4) / 3;
+                        hSize += (vSize * GPU::WideScreenWidth) / 256;
                     else
-                        vSize += (hSize * 4) / 3;
+                        vSize += (hSize * GPU::WideScreenWidth) / 256;
                 }
 
                 // scale evenly
@@ -435,7 +435,7 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
         M23_Multiply(TouchMtx, rotmtx, TouchMtx);
 
         M23_Scale(TouchMtx, 1.f/botAspect, 1);
-        M23_Translate(TouchMtx, 256/2, 192/2);
+        M23_Translate(TouchMtx, GPU::WideScreenWidth/2, 192/2);
 
         if (HybEnable && HybScreen == 1)
         {

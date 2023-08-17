@@ -2615,7 +2615,7 @@ void SetRenderXPos(u16 xpos)
     RenderXPos = xpos & 0x01FF;
 }
 
-u32 ScrolledLine[256];
+u32 ScrolledLine[GPU::WideScreenWidth];
 
 u32* GetLine(int line)
 {
@@ -2629,24 +2629,20 @@ u32* GetLine(int line)
 
         if (RenderXPos & 0x100)
         {
-            int i = 0, j = RenderXPos;
-            for (; j < 512; i++, j++)
-                ScrolledLine[i] = 0;
-            for (j = 0; i < 256; i++, j++)
-                ScrolledLine[i] = rawline[j];
+			int startPos = 512-RenderXPos;
+			memset(ScrolledLine, 0, startPos*4);
+			memcpy(&ScrolledLine[startPos], rawline, (GPU::WideScreenWidth-startPos)*4);
         }
         else
         {
-            int i = 0, j = RenderXPos;
-            for (; j < 256; i++, j++)
-                ScrolledLine[i] = rawline[j];
-            for (; i < 256; i++)
-                ScrolledLine[i] = 0;
+			int endPos = GPU::WideScreenWidth-RenderXPos;
+			memcpy(ScrolledLine, rawline, endPos*4);
+			memset(&ScrolledLine[endPos], 0, (GPU::WideScreenWidth-endPos)*4);
         }
     }
     else
     {
-        memset(ScrolledLine, 0, 256*4);
+        memset(ScrolledLine, 0, GPU::WideScreenWidth*4);
     }
 
     return ScrolledLine;

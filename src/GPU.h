@@ -80,6 +80,8 @@ extern GPU2D::Unit GPU2D_B;
 
 extern int Renderer;
 
+const u16 WideScreenWidth = 336;
+
 const u32 VRAMDirtyGranularity = 512;
 
 extern NonStupidBitField<128*1024/VRAMDirtyGranularity> VRAMDirty[9];

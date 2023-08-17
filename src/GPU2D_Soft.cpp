@@ -28,7 +28,7 @@ SoftRenderer::SoftRenderer()
     // initialize mosaic table
     for (int m = 0; m < 16; m++)
     {
-        for (int x = 0; x < 256; x++)
+        for (int x = 0; x < GPU::WideScreenWidth; x++)
         {
             int offset = x % (m+1);
             MosaicTable[m][x] = offset;
@@ -165,7 +165,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
 {
     CurUnit = unit;
 
-    int stride = GPU3D::CurrentRenderer->Accelerated ? (256*3 + 1) : 256;
+    int stride = GPU3D::CurrentRenderer->Accelerated ? (GPU::WideScreenWidth*3 + 1) : GPU::WideScreenWidth;
     u32* dst = &Framebuffer[CurUnit->Num][stride * line];
 
     int n3dline = line;
@@ -216,12 +216,12 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
 
     if (forceblank)
     {
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
             dst[i] = 0xFFFFFFFF;
 
         if (GPU3D::CurrentRenderer->Accelerated)
         {
-            dst[256*3] = 0;
+            dst[GPU::WideScreenWidth*3] = 0;
         }
         return;
     }
@@ -237,7 +237,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
     {
     case 0: // screen off
         {
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
                 dst[i] = 0x003F3F3F;
         }
         break;
@@ -267,10 +267,13 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
 
                     dst[i] = r | (g << 8) | (b << 16);
                 }
+				for(int i=256; i<GPU::WideScreenWidth; i++) {
+					dst[i] = 0;
+				}
             }
             else
             {
-                for (int i = 0; i < 256; i++)
+                for (int i = 0; i < GPU::WideScreenWidth; i++)
                 {
                     dst[i] = 0;
                 }
@@ -289,6 +292,9 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
 
                 dst[i] = r | (g << 8) | (b << 16);
             }
+			for(int i=256; i<GPU::WideScreenWidth; i++) {
+				dst[i] = 0;
+			}
         }
         break;
     }
@@ -313,7 +319,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
 
     if (GPU3D::CurrentRenderer->Accelerated)
     {
-        dst[256*3] = masterBrightness | (CurUnit->DispCnt & 0x30000);
+        dst[GPU::WideScreenWidth*3] = masterBrightness | (CurUnit->DispCnt & 0x30000);
         return;
     }
 
@@ -326,7 +332,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
             u32 factor = masterBrightness & 0x1F;
             if (factor > 16) factor = 16;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 dst[i] = ColorBrightnessUp(dst[i], factor, 0x0);
             }
@@ -337,7 +343,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
             u32 factor = masterBrightness & 0x1F;
             if (factor > 16) factor = 16;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 dst[i] = ColorBrightnessDown(dst[i], factor, 0xF);
             }
@@ -347,7 +353,7 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
     // convert to 32-bit BGRA
     // note: 32-bit RGBA would be more straightforward, but
     // BGRA seems to be more compatible (Direct2D soft, cairo...)
-    for (int i = 0; i < 256; i+=2)
+    for (int i = 0; i < GPU::WideScreenWidth; i+=2)
     {
         u64 c = *(u64*)&dst[i];
 
@@ -402,11 +408,11 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
             // but when doing display capture, we do need the composited output
             // so we do it here
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 u32 val1 = BGOBJLine[i];
-                u32 val2 = BGOBJLine[256+i];
-                u32 val3 = BGOBJLine[512+i];
+                u32 val2 = BGOBJLine[GPU::WideScreenWidth+i];
+                u32 val3 = BGOBJLine[(GPU::WideScreenWidth*2)+i];
 
                 u32 compmode = (val3 >> 24) & 0xF;
 
@@ -749,7 +755,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     // forced blank disables BG/OBJ compositing
     if (CurUnit->DispCnt & (1<<7))
     {
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
             BGOBJLine[i] = 0xFF3F3F3F;
 
         return;
@@ -767,14 +773,14 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
         backdrop = r | (g << 8) | (b << 16) | 0x20000000;
         backdrop |= (backdrop << 32);
 
-        for (int i = 0; i < 256; i+=2)
+        for (int i = 0; i < GPU::WideScreenWidth; i+=2)
             *(u64*)&BGOBJLine[i] = backdrop;
     }
 
     if (CurUnit->DispCnt & 0xE000)
         CurUnit->CalculateWindowMask(line, WindowMask, OBJWindow[CurUnit->Num]);
     else
-        memset(WindowMask, 0xFF, 256);
+        memset(WindowMask, 0xFF, GPU::WideScreenWidth);
 
     ApplySpriteMosaicX();
     CurBGXMosaicTable = MosaicTable[CurUnit->BGMosaicSize[0]];
@@ -796,10 +802,10 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
 
     if (!GPU3D::CurrentRenderer->Accelerated)
     {
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
             u32 val1 = BGOBJLine[i];
-            u32 val2 = BGOBJLine[256+i];
+            u32 val2 = BGOBJLine[GPU::WideScreenWidth+i];
 
             BGOBJLine[i] = ColorComposite(i, val1, val2);
         }
@@ -808,11 +814,11 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     {
         if (CurUnit->Num == 0)
         {
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 u32 val1 = BGOBJLine[i];
-                u32 val2 = BGOBJLine[256+i];
-                u32 val3 = BGOBJLine[512+i];
+                u32 val2 = BGOBJLine[GPU::WideScreenWidth+i];
+                u32 val3 = BGOBJLine[(GPU::WideScreenWidth*2)+i];
 
                 u32 flag1 = val1 >> 24;
                 u32 flag2 = val2 >> 24;
@@ -834,8 +840,8 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                     // 3D on top, blending
 
                     BGOBJLine[i]     = val2;
-                    BGOBJLine[256+i] = ColorComposite(i, val2, val3);
-                    BGOBJLine[512+i] = 0x04000000;
+                    BGOBJLine[GPU::WideScreenWidth+i] = ColorComposite(i, val2, val3);
+                    BGOBJLine[(GPU::WideScreenWidth*2)+i] = 0x04000000;
                 }
                 else if ((flag1 & 0xC0) == 0x40)
                 {
@@ -846,8 +852,8 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                     if (!(WindowMask[i] & 0x20))       bldcnteffect = 0;
 
                     BGOBJLine[i]     = val2;
-                    BGOBJLine[256+i] = ColorComposite(i, val2, val3);
-                    BGOBJLine[512+i] = (bldcnteffect << 24) | (CurUnit->EVY << 8);
+                    BGOBJLine[GPU::WideScreenWidth+i] = ColorComposite(i, val2, val3);
+                    BGOBJLine[(GPU::WideScreenWidth*2)+i] = (bldcnteffect << 24) | (CurUnit->EVY << 8);
                 }
                 else if (((flag2 & 0xC0) == 0x40) && ((CurUnit->BlendCnt & 0x01C0) == 0x0140))
                 {
@@ -869,29 +875,29 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                         bldcnteffect = 7;
 
                     BGOBJLine[i]     = val1;
-                    BGOBJLine[256+i] = ColorComposite(i, val1, val3);
-                    BGOBJLine[512+i] = (bldcnteffect << 24) | (CurUnit->EVB << 16) | (CurUnit->EVA << 8);
+                    BGOBJLine[GPU::WideScreenWidth+i] = ColorComposite(i, val1, val3);
+                    BGOBJLine[(GPU::WideScreenWidth*2)+i] = (bldcnteffect << 24) | (CurUnit->EVB << 16) | (CurUnit->EVA << 8);
                 }
                 else
                 {
                     // no potential 3D pixel involved
 
                     BGOBJLine[i]     = ColorComposite(i, val1, val2);
-                    BGOBJLine[256+i] = 0;
-                    BGOBJLine[512+i] = 0x07000000;
+                    BGOBJLine[GPU::WideScreenWidth+i] = 0;
+                    BGOBJLine[(GPU::WideScreenWidth*2)+i] = 0x07000000;
                 }
             }
         }
         else
         {
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 u32 val1 = BGOBJLine[i];
-                u32 val2 = BGOBJLine[256+i];
+                u32 val2 = BGOBJLine[GPU::WideScreenWidth+i];
 
                 BGOBJLine[i]     = ColorComposite(i, val1, val2);
-                BGOBJLine[256+i] = 0;
-                BGOBJLine[512+i] = 0x07000000;
+                BGOBJLine[GPU::WideScreenWidth+i] = 0;
+                BGOBJLine[(GPU::WideScreenWidth*2)+i] = 0x07000000;
             }
         }
     }
@@ -921,7 +927,7 @@ void SoftRenderer::DrawPixel_Normal(u32* dst, u16 color, u32 flag)
     u8 b = (color & 0x7C00) >> 9;
     //g |= ((color & 0x8000) >> 15);
 
-    *(dst+256) = *dst;
+    *(dst+GPU::WideScreenWidth) = *dst;
     *dst = r | (g << 8) | (b << 16) | flag;
 }
 
@@ -931,8 +937,8 @@ void SoftRenderer::DrawPixel_Accel(u32* dst, u16 color, u32 flag)
     u8 g = (color & 0x03E0) >> 4;
     u8 b = (color & 0x7C00) >> 9;
 
-    *(dst+512) = *(dst+256);
-    *(dst+256) = *dst;
+    *(dst+(GPU::WideScreenWidth*2)) = *(dst+GPU::WideScreenWidth);
+    *(dst+GPU::WideScreenWidth) = *dst;
     *dst = r | (g << 8) | (b << 16) | flag;
 }
 
@@ -942,25 +948,25 @@ void SoftRenderer::DrawBG_3D()
 
     if (GPU3D::CurrentRenderer->Accelerated)
     {
-        for (i = 0; i < 256; i++)
+        for (i = 0; i < GPU::WideScreenWidth; i++)
         {
             if (!(WindowMask[i] & 0x01)) continue;
 
-            BGOBJLine[i+512] = BGOBJLine[i+256];
-            BGOBJLine[i+256] = BGOBJLine[i];
+            BGOBJLine[i+(GPU::WideScreenWidth*2)] = BGOBJLine[i+GPU::WideScreenWidth];
+            BGOBJLine[i+GPU::WideScreenWidth] = BGOBJLine[i];
             BGOBJLine[i] = 0x40000000; // 3D-layer placeholder
         }
     }
     else
     {
-        for (i = 0; i < 256; i++)
+        for (i = 0; i < GPU::WideScreenWidth; i++)
         {
             u32 c = _3DLine[i];
 
             if ((c >> 24) == 0) continue;
             if (!(WindowMask[i] & 0x01)) continue;
 
-            BGOBJLine[i+256] = BGOBJLine[i];
+            BGOBJLine[i+GPU::WideScreenWidth] = BGOBJLine[i];
             BGOBJLine[i] = c | 0x40000000;
         }
     }
@@ -1041,7 +1047,7 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
 
         if (mosaic) lastxpos = xoff;
 
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
             u32 xpos;
             if (mosaic) xpos = xoff - CurBGXMosaicTable[i];
@@ -1090,7 +1096,7 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
 
         if (mosaic) lastxpos = xoff;
 
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
             u32 xpos;
             if (mosaic) xpos = xoff - CurBGXMosaicTable[i];
@@ -1191,7 +1197,7 @@ void SoftRenderer::DrawBG_Affine(u32 line, u32 bgnum)
 
     yshift -= 3;
 
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < GPU::WideScreenWidth; i++)
     {
         if (WindowMask[i] & (1<<bgnum))
         {
@@ -1296,7 +1302,7 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 
             u16 color;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 if (WindowMask[i] & (1<<bgnum))
                 {
@@ -1335,7 +1341,7 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 
             u8 color;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < GPU::WideScreenWidth; i++)
             {
                 if (WindowMask[i] & (1<<bgnum))
                 {
@@ -1405,7 +1411,7 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 
         yshift -= 3;
 
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
             if (WindowMask[i] & (1<<bgnum))
             {
@@ -1512,7 +1518,7 @@ void SoftRenderer::DrawBG_Large(u32 line) // BG is always BG2
 
     u8 color;
 
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < GPU::WideScreenWidth; i++)
     {
         if (WindowMask[i] & (1<<2))
         {
@@ -1567,7 +1573,7 @@ void SoftRenderer::ApplySpriteMosaicX()
 
     u32 lastcolor = objLine[0];
 
-    for (u32 i = 1; i < 256; i++)
+    for (u32 i = 1; i < GPU::WideScreenWidth; i++)
     {
         if (!(objLine[i] & 0x100000))
         {
@@ -1592,7 +1598,7 @@ void SoftRenderer::InterleaveSprites(u32 prio)
     {
         u16* extpal = CurUnit->GetOBJExtPal();
 
-        for (u32 i = 0; i < 256; i++)
+        for (u32 i = 0; i < GPU::WideScreenWidth; i++)
         {
             if ((objLine[i] & 0x70000) != prio) continue;
             if (!(WindowMask[i] & 0x10))        continue;
@@ -1614,7 +1620,7 @@ void SoftRenderer::InterleaveSprites(u32 prio)
     {
         // optimized no-extpal version
 
-        for (u32 i = 0; i < 256; i++)
+        for (u32 i = 0; i < GPU::WideScreenWidth; i++)
         {
             if ((objLine[i] & 0x70000) != prio) continue;
             if (!(WindowMask[i] & 0x10))        continue;
@@ -1670,11 +1676,11 @@ void SoftRenderer::DrawSprites(u32 line, Unit* unit)
     }
 
     NumSprites[CurUnit->Num] = 0;
-    memset(OBJLine[CurUnit->Num], 0, 256*4);
-    memset(OBJWindow[CurUnit->Num], 0, 256);
+    memset(OBJLine[CurUnit->Num], 0, GPU::WideScreenWidth*4);
+    memset(OBJWindow[CurUnit->Num], 0, GPU::WideScreenWidth);
     if (!(CurUnit->DispCnt & 0x1000)) return;
 
-    memset(OBJIndex, 0xFF, 256);
+    memset(OBJIndex, 0xFF, GPU::WideScreenWidth);
 
     u16* oam = (u16*)&GPU::OAM[CurUnit->Num ? 0x400 : 0];
 
@@ -1802,8 +1808,8 @@ void SoftRenderer::DrawSprite_Rotscale(u32 num, u32 boundwidth, u32 boundheight,
     if (xpos >= 0)
     {
         xoff = 0;
-        if ((xpos+boundwidth) > 256)
-            boundwidth = 256-xpos;
+        if ((xpos+boundwidth) > GPU::WideScreenWidth)
+            boundwidth = GPU::WideScreenWidth-xpos;
     }
     else
     {
@@ -2025,8 +2031,8 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
     if (xpos >= 0)
     {
         xoff = 0;
-        if ((xpos+xend) > 256)
-            xend = 256-xpos;
+        if ((xpos+xend) > GPU::WideScreenWidth)
+            xend = GPU::WideScreenWidth-xpos;
     }
     else
     {

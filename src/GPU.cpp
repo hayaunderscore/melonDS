@@ -253,9 +253,9 @@ void Reset()
 
     size_t fbsize;
     if (GPU3D::CurrentRenderer->Accelerated)
-        fbsize = (256*3 + 1) * 192;
+        fbsize = (WideScreenWidth*3 + 1) * 192;
     else
-        fbsize = 256 * 192;
+        fbsize = WideScreenWidth * 192;
 
     for (size_t i = 0; i < fbsize; i++)
     {
@@ -287,9 +287,9 @@ void Stop()
 {
     int fbsize;
     if (GPU3D::CurrentRenderer->Accelerated)
-        fbsize = (256*3 + 1) * 192;
+        fbsize = (WideScreenWidth*3 + 1) * 192;
     else
-        fbsize = 256 * 192;
+        fbsize = WideScreenWidth * 192;
 
     memset(Framebuffer[0][0], 0, fbsize*4);
     memset(Framebuffer[0][1], 0, fbsize*4);
@@ -453,9 +453,9 @@ void SetRenderSettings(int renderer, RenderSettings& settings)
 
     int fbsize;
     if (GPU3D::CurrentRenderer->Accelerated)
-        fbsize = (256*3 + 1) * 192;
+        fbsize = (WideScreenWidth*3 + 1) * 192;
     else
-        fbsize = 256 * 192;
+        fbsize = WideScreenWidth * 192;
 
     if (Framebuffer[0][0]) { delete[] Framebuffer[0][0]; Framebuffer[0][0] = nullptr; }
     if (Framebuffer[1][0]) { delete[] Framebuffer[1][0]; Framebuffer[1][0] = nullptr; }

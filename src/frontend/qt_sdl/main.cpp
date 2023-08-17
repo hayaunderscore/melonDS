@@ -168,11 +168,9 @@ bool camStarted[2];
 
 const struct { int id; float ratio; const char* label; } aspectRatios[] =
 {
-    { 0, 1,                       "4:3 (native)" },
-    { 4, (5.f  / 3) / (4.f / 3), "5:3 (3DS)"},
-    { 1, (16.f / 9) / (4.f / 3),  "16:9" },
-    { 2, (21.f / 9) / (4.f / 3),  "21:9" },
-    { 3, 0,                       "window" }
+    { 0, 1,                       "16:9 (native)" },
+    { 1, (21.f / 9) / (GPU::WideScreenWidth / 192.0f),  "21:9" },
+    { 2, 0,                       "window" }
 };
 constexpr int AspectRatiosNum = sizeof(aspectRatios) / sizeof(aspectRatios[0]);
 
@@ -251,17 +249,17 @@ void EmuThread::initOpenGL()
     {
         0.f,   0.f,    0.f, 0.f,
         0.f,   192.f,  0.f, 0.5f - padPixels,
-        256.f, 192.f,  1.f, 0.5f - padPixels,
+        GPU::WideScreenWidth, 192.f,  1.f, 0.5f - padPixels,
         0.f,   0.f,    0.f, 0.f,
-        256.f, 192.f,  1.f, 0.5f - padPixels,
-        256.f, 0.f,    1.f, 0.f,
+        GPU::WideScreenWidth, 192.f,  1.f, 0.5f - padPixels,
+        GPU::WideScreenWidth, 0.f,    1.f, 0.f,
 
         0.f,   0.f,    0.f, 0.5f + padPixels,
         0.f,   192.f,  0.f, 1.f,
-        256.f, 192.f,  1.f, 1.f,
+        GPU::WideScreenWidth, 192.f,  1.f, 1.f,
         0.f,   0.f,    0.f, 0.5f + padPixels,
-        256.f, 192.f,  1.f, 1.f,
-        256.f, 0.f,    1.f, 0.5f + padPixels
+        GPU::WideScreenWidth, 192.f,  1.f, 1.f,
+        GPU::WideScreenWidth, 0.f,    1.f, 0.5f + padPixels
     };
 
     glGenBuffers(1, &screenVertexBuffer);
@@ -282,11 +280,11 @@ void EmuThread::initOpenGL()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, paddedHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GPU::WideScreenWidth, paddedHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     // fill the padding
-    u8 zeroData[256*4*4];
+    u8 zeroData[GPU::WideScreenWidth*4*4];
     memset(zeroData, 0, sizeof(zeroData));
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192, 256, 2, GL_RGBA, GL_UNSIGNED_BYTE, zeroData);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192, GPU::WideScreenWidth, 2, GL_RGBA, GL_UNSIGNED_BYTE, zeroData);
 
     OSD::Init(true);
 
@@ -766,9 +764,9 @@ void EmuThread::drawScreenGL()
 
         if (GPU::Framebuffer[frontbuf][0] && GPU::Framebuffer[frontbuf][1])
         {
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 192, GL_RGBA,
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GPU::WideScreenWidth, 192, GL_RGBA,
                             GL_UNSIGNED_BYTE, GPU::Framebuffer[frontbuf][0]);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192+2, 256, 192, GL_RGBA,
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 192+2, GPU::WideScreenWidth, 192, GL_RGBA,
                             GL_UNSIGNED_BYTE, GPU::Framebuffer[frontbuf][1]);
         }
     }
@@ -824,12 +822,21 @@ void ScreenHandler::screenSetupLayout(int w, int h)
             aspectBot = ratio.ratio;
     }
 
-    if (aspectTop == 0)
-        aspectTop = ((float) w / h) / (4.f / 3.f);
-
-    if (aspectBot == 0)
-        aspectBot = ((float) w / h) / (4.f / 3.f);
-
+    if (aspectTop == 0) {
+		aspectTop = ((float) w / h) / (GPU::WideScreenWidth / 192.0f);
+		if(sizing != 4) {
+			aspectTop *= 2;
+		}
+	}
+        
+	
+    if (aspectBot == 0) {
+		aspectBot = ((float) w / h) / (GPU::WideScreenWidth / 192.0f);
+		if(sizing != 5) {
+			aspectBot *= 2;
+		}
+	}
+	
     Frontend::SetupScreenLayout(w, h,
                                 static_cast<Frontend::ScreenLayout>(Config::ScreenLayout),
                                 static_cast<Frontend::ScreenRotation>(Config::ScreenRotation),
@@ -849,7 +856,7 @@ QSize ScreenHandler::screenGetMinSize(int factor = 1)
         || Config::ScreenRotation == Frontend::screenRot_270Deg);
     int gap = Config::ScreenGap * factor;
 
-    int w = 256 * factor;
+    int w = GPU::WideScreenWidth * factor;
     int h = 192 * factor;
 
     if (Config::ScreenSizing == Frontend::screenSizing_TopOnly
@@ -1009,8 +1016,8 @@ QTimer* ScreenHandler::setupMouseTimer()
 
 ScreenPanelNative::ScreenPanelNative(QWidget* parent) : QWidget(parent), ScreenHandler(this)
 {
-    screen[0] = QImage(256, 192, QImage::Format_RGB32);
-    screen[1] = QImage(256, 192, QImage::Format_RGB32);
+    screen[0] = QImage(GPU::WideScreenWidth, 192, QImage::Format_RGB32);
+    screen[1] = QImage(GPU::WideScreenWidth, 192, QImage::Format_RGB32);
 
     screenTrans[0].reset();
     screenTrans[1].reset();
@@ -1056,11 +1063,11 @@ void ScreenPanelNative::paintEvent(QPaintEvent* event)
             return;
         }
 
-        memcpy(screen[0].scanLine(0), GPU::Framebuffer[frontbuf][0], 256 * 192 * 4);
-        memcpy(screen[1].scanLine(0), GPU::Framebuffer[frontbuf][1], 256 * 192 * 4);
+        memcpy(screen[0].scanLine(0), GPU::Framebuffer[frontbuf][0], GPU::WideScreenWidth * 192 * 4);
+        memcpy(screen[1].scanLine(0), GPU::Framebuffer[frontbuf][1], GPU::WideScreenWidth * 192 * 4);
         emuThread->FrontBufferLock.unlock();
 
-        QRect screenrc(0, 0, 256, 192);
+        QRect screenrc(0, 0, GPU::WideScreenWidth, 192);
 
         for (int i = 0; i < numScreens; i++)
         {

@@ -257,7 +257,7 @@ bool GLRenderer::Init()
 
     // downscale framebuffer for display capture (always 256x192)
     SetupDefaultTexParams(FramebufferTex[3]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 192, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GPU::WideScreenWidth, 192, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glEnable(GL_BLEND);
     glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
@@ -320,7 +320,7 @@ void GLRenderer::SetRenderSettings(GPU::RenderSettings& settings)
     ScaleFactor = scale;
     BetterPolygons = settings.GL_BetterPolygons;
 
-    ScreenW = 256 * scale;
+    ScreenW = GPU::WideScreenWidth * scale;
     ScreenH = 192 * scale;
 
     glBindTexture(GL_TEXTURE_2D, FramebufferTex[0]);
@@ -358,7 +358,7 @@ void GLRenderer::SetRenderSettings(GPU::RenderSettings& settings)
     glBindFramebuffer(GL_FRAMEBUFFER, FramebufferID[0]);
 
     glBindBuffer(GL_PIXEL_PACK_BUFFER, PixelbufferID);
-    glBufferData(GL_PIXEL_PACK_BUFFER, 256*192*4, NULL, GL_DYNAMIC_READ);
+    glBufferData(GL_PIXEL_PACK_BUFFER, GPU::WideScreenWidth*192*4, NULL, GL_DYNAMIC_READ);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -752,7 +752,7 @@ void GLRenderer::RenderSceneChunk(int y, int h)
     u32 flags = 0;
     if (RenderPolygonRAM[0]->WBuffer) flags |= RenderFlag_WBuffer;
 
-    if (h != 192) glScissor(0, y<<ScaleFactor, 256<<ScaleFactor, h<<ScaleFactor);
+    if (h != 192) glScissor(0, y<<ScaleFactor, GPU::WideScreenWidth<<ScaleFactor, h<<ScaleFactor);
 
     GLboolean fogenable = (RenderDispCnt & (1<<7)) ? GL_TRUE : GL_FALSE;
 
@@ -1295,15 +1295,15 @@ void GLRenderer::PrepareCaptureFrame()
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FramebufferID[3]);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glBlitFramebuffer(0, 0, ScreenW, ScreenH, 0, 0, 256, 192, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, ScreenW, ScreenH, 0, 0, GPU::WideScreenWidth, 192, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, FramebufferID[3]);
-    glReadPixels(0, 0, 256, 192, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+    glReadPixels(0, 0, GPU::WideScreenWidth, 192, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 }
 
 u32* GLRenderer::GetLine(int line)
 {
-    int stride = 256;
+    int stride = GPU::WideScreenWidth;
 
     if (line == 0)
     {

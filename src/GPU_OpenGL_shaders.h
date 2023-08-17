@@ -56,14 +56,14 @@ void main()
 
     float _3dxpos = float(u3DXPos);
 
-    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(256*3, int(fTexcoord.y)), 0));
+    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(336*3, int(fTexcoord.y)), 0));
     int dispmode = mbright.b & 0x3;
 
     if (dispmode == 1)
     {
         ivec4 val1 = pixel;
-        ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(256,0), 0));
-        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(512,0), 0));
+        ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(336,0), 0));
+        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2((336*2),0), 0));
 
         int compmode = val3.a & 0xF;
         int eva, evb, evy;
@@ -245,14 +245,14 @@ void main()
 {
     ivec4 pixel = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord), 0));
 
-    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(256*3, int(fTexcoord.y)), 0));
+    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(336*3, int(fTexcoord.y)), 0));
     int dispmode = mbright.b & 0x3;
 
     if (dispmode == 1)
     {
         ivec4 val1 = pixel;
-        ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(256,0), 0));
-        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(512,0), 0));
+        ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(336,0), 0));
+        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2((336*2),0), 0));
 
         float xfract = fract(fTexcoord.x);
         float yfract = fract(fTexcoord.y);
@@ -267,18 +267,18 @@ void main()
         int ydisp = 1 - int(step(191, ypos));
 
         ivec4 p01 = GetFullPixel(ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+0  ,0), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+256,0), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+512,0), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+336,0), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+(336*2),0), 0)),
                                  _3dpix);
 
         ivec4 p10 = GetFullPixel(ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(0+0  ,ydisp), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(0+256,ydisp), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(0+512,ydisp), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(0+336,ydisp), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(0+(336*2),ydisp), 0)),
                                  _3dpix);
 
         ivec4 p11 = GetFullPixel(ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+0  ,ydisp), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+256,ydisp), 0)),
-                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+512,ydisp), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+336,ydisp), 0)),
+                                 ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+(336*2),ydisp), 0)),
                                  _3dpix);
 
         ivec4 pa = imix(p00, p01, xfract);
@@ -379,7 +379,7 @@ void main()
     fpos.w = 1.0;
 
     gl_Position = fpos;
-    vec2 TexCoord = (vPosition + vec2(1.0, 1.0)) * (vec2(256.0, 384.0) / 2.0);
+    vec2 TexCoord = (vPosition + vec2(1.0, 1.0)) * (vec2(336.0, 384.0) / 2.0);
 
 
     //gl_Position = MVPMatrix * VertexCoord;
@@ -447,7 +447,7 @@ out vec4 oColor;
 
 //uniform COMPAT_PRECISION vec2 OutputSize;
 //uniform COMPAT_PRECISION vec2 TextureSize;
-#define TextureSize vec2(256,384)
+#define TextureSize vec2(336,384)
 //uniform COMPAT_PRECISION vec2 InputSize;
 //uniform sampler2D Texture;
 #define Texture 1312
@@ -474,7 +474,7 @@ COMPAT_VARYING vec4 t7;
 
 vec4 Get2DPixel(vec2 texcoord, int level)
 {
-    ivec4 pixel = ivec4(texelFetch(ScreenTex, ivec2(texcoord) + ivec2(level*256,0), 0));
+    ivec4 pixel = ivec4(texelFetch(ScreenTex, ivec2(texcoord) + ivec2(level*336,0), 0));
 
     return vec4(pixel) / vec4(63.0, 63.0, 63.0, 31.0);
 }
@@ -751,14 +751,14 @@ void main()
 
     ivec4 pixel;// = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord), 0));
 
-    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(256*3, int(fTexcoord.y)), 0));
+    ivec4 mbright = ivec4(texelFetch(ScreenTex, ivec2(336*3, int(fTexcoord.y)), 0));
     int dispmode = mbright.b & 0x3;
 
     if (dispmode == 1)
     {
         ivec4 val1;// = pixel;
-        //ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(256,0), 0));
-        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(512,0), 0));
+        //ivec4 val2 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(336,0), 0));
+        ivec4 val3 = ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2((336*2),0), 0));
 
         int compmode = val3.a & 0xF;
         int eva, evb, evy;
