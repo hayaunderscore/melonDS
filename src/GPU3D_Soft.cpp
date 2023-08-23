@@ -1563,13 +1563,15 @@ void SoftRenderer::ClearBuffers()
 
     if (RenderDispCnt & (1<<14))
     {
-        u8 xoff = (RenderClearAttr2 >> 16) & 0xFF;
+		float src_x_step = (RenderDispCnt & 0x8000) ? (256.0f/GPU::WideScreenWidth) : 1.0f;
+		float src_x = (RenderClearAttr2 >> 16) & 0xFF;
         u8 yoff = (RenderClearAttr2 >> 24) & 0xFF;
 
         for (int y = 0; y < ScanlineWidth*192; y+=ScanlineWidth)
         {
             for (int x = 0; x < GPU::WideScreenWidth; x++)
             {
+				u8 xoff = src_x;
                 u16 val2 = ReadVRAM_Texture<u16>(0x40000 + (yoff << 9) + (xoff << 1));
                 u16 val3 = ReadVRAM_Texture<u16>(0x60000 + (yoff << 9) + (xoff << 1));
 
@@ -1587,7 +1589,7 @@ void SoftRenderer::ClearBuffers()
                 DepthBuffer[pixeladdr] = z;
                 AttrBuffer[pixeladdr] = polyid | (val3 & 0x8000);
 
-                xoff++;
+                src_x += src_x_step;
             }
 
             yoff++;

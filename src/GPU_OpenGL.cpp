@@ -201,7 +201,11 @@ void GLCompositor::RenderFrame()
     glUniform1ui(CompScaleLoc[0], Scale);
 
     // TODO: support setting this midframe, if ever needed
-    glUniform1i(Comp3DXPosLoc[0], ((int)GPU3D::RenderXPos << 23) >> 23);
+	int xPos = ((int)GPU3D::RenderXPos << 23) >> 23;
+	if(GPU3D::RenderDispCnt & 0x8000) {
+		xPos = (xPos*GPU::WideScreenWidth)/256;
+	}
+    glUniform1i(Comp3DXPosLoc[0], xPos);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, CompScreenInputTex);

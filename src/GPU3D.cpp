@@ -1206,8 +1206,10 @@ void SubmitPolygon()
             posX = ((posX * Viewport[4]) / den) + Viewport[0];
             posY = ((posY * Viewport[5]) / den) + Viewport[3];
         }
-
-        vtx->FinalPosition[0] = posX & 0x1FF;
+		vtx->FinalPosition[0] = posX & 0x1FF;
+		if(DispCnt & 0x8000) {
+			vtx->FinalPosition[0] = (vtx->FinalPosition[0]*GPU::WideScreenWidth)/256;
+		}
         vtx->FinalPosition[1] = posY & 0xFF;
 
         // hi-res positions
@@ -1218,6 +1220,9 @@ void SubmitPolygon()
             posY = ((((s64)(-vtx->Position[1] + w) * Viewport[5]) << 4) / (((s64)w) << 1)) + (Viewport[3] << 4);
 
             vtx->HiresPosition[0] = posX & 0x1FFF;
+			if(DispCnt & 0x8000) {
+				vtx->HiresPosition[0] = (vtx->HiresPosition[0]*GPU::WideScreenWidth)/256;
+			}
             vtx->HiresPosition[1] = posY & 0xFFF;
         }
     }
@@ -2630,12 +2635,18 @@ u32* GetLine(int line)
         if (RenderXPos & 0x100)
         {
 			int startPos = 512-RenderXPos;
+			if(RenderDispCnt & 0x8000) {
+				startPos = (startPos*GPU::WideScreenWidth)/256;
+			}
 			memset(ScrolledLine, 0, startPos*4);
 			memcpy(&ScrolledLine[startPos], rawline, (GPU::WideScreenWidth-startPos)*4);
         }
         else
         {
-			int endPos = GPU::WideScreenWidth-RenderXPos;
+			int endPos = 256-RenderXPos;
+			if(RenderDispCnt & 0x8000) {
+				endPos = (endPos*GPU::WideScreenWidth)/256;
+			}
 			memcpy(ScrolledLine, rawline, endPos*4);
 			memset(&ScrolledLine[endPos], 0, (GPU::WideScreenWidth-endPos)*4);
         }
@@ -2882,7 +2893,7 @@ void Write16(u32 addr, u16 val)
     switch (addr)
     {
     case 0x04000060:
-        DispCnt = (val & 0x4FFF) | (DispCnt & 0x3000);
+        DispCnt = (val & 0xCFFF) | (DispCnt & 0x3000);
         if (val & (1<<12)) DispCnt &= ~(1<<12);
         if (val & (1<<13)) DispCnt &= ~(1<<13);
         AlphaRef = (DispCnt & (1<<2)) ? AlphaRefVal : 0;
@@ -2969,7 +2980,7 @@ void Write32(u32 addr, u32 val)
     switch (addr)
     {
     case 0x04000060:
-        DispCnt = (val & 0x4FFF) | (DispCnt & 0x3000);
+        DispCnt = (val & 0xCFFF) | (DispCnt & 0x3000);
         if (val & (1<<12)) DispCnt &= ~(1<<12);
         if (val & (1<<13)) DispCnt &= ~(1<<13);
         AlphaRef = (DispCnt & (1<<2)) ? AlphaRefVal : 0;
