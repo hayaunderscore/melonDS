@@ -666,8 +666,13 @@ void Unit::CalculateWindowMask(u32 line, u8* windowMask, u8* objWindow)
     if (DispCnt & (1<<14))
     {
         // window 1
-        u8 x1 = Win1Coords[0];
-        u8 x2 = Win1Coords[1];
+        u16 x1 = Win1Coords[0];
+        u16 x2 = Win1Coords[1];
+		
+		if(WinCnt[1] & 0x40) {
+			x1 = (x1*(GPU::WideScreenWidth-1))/255;
+			x2 = (x2*(GPU::WideScreenWidth-1))/255;
+		}
 
         for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
@@ -681,9 +686,14 @@ void Unit::CalculateWindowMask(u32 line, u8* windowMask, u8* objWindow)
     if (DispCnt & (1<<13))
     {
         // window 0
-        u8 x1 = Win0Coords[0];
-        u8 x2 = Win0Coords[1];
-
+        u16 x1 = Win0Coords[0];
+        u16 x2 = Win0Coords[1];
+		
+		if(WinCnt[0] & 0x40) {
+			x1 = (x1*(GPU::WideScreenWidth-1))/255;
+			x2 = (x2*(GPU::WideScreenWidth-1))/255;
+		}
+		
         for (int i = 0; i < GPU::WideScreenWidth; i++)
         {
             if (i == x2)      Win0Active &= ~0x2;

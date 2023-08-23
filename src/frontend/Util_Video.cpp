@@ -24,6 +24,7 @@
 
 #include "FrontendUtil.h"
 #include "../GPU.h"
+#include "../NDS.h"
 
 namespace Frontend
 {
@@ -480,7 +481,11 @@ bool GetTouchCoords(int& x, int& y, bool clamp)
 
         M23_Transform(TouchMtx, vx, vy);
         M23_Transform(HybTouchMtx, hvx, hvy);
-
+		
+		if(NDS::PowerControl9 & 0x4000) {
+			vx *= 256.0f/GPU::WideScreenWidth;
+			hvx *= 256.0f/GPU::WideScreenWidth;
+		}
         if (clamp)
         {
             if (HybPrevTouchScreen == 1)
@@ -526,7 +531,11 @@ bool GetTouchCoords(int& x, int& y, bool clamp)
         float vy = y;
 
         M23_Transform(TouchMtx, vx, vy);
-
+		
+		if(NDS::PowerControl9 & 0x4000) {
+			vx *= 256.0f/GPU::WideScreenWidth;
+		}
+		
         if (clamp)
         {
             x = std::clamp((int)vx, 0, 255);
