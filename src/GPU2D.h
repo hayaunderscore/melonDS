@@ -83,7 +83,8 @@ public:
 
     u32 DispCnt;
     u16 BGCnt[4];
-
+	
+	bool EverXScrolled[4];
     u16 BGXPos[4];
     u16 BGYPos[4];
 

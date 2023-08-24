@@ -983,14 +983,23 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
 
     u16 xoff = CurUnit->BGXPos[bgnum];
     u16 yoff = CurUnit->BGYPos[bgnum] + line;
-
+	
+	if(xoff != 0) {
+		CurUnit->EverXScrolled[bgnum] = true;
+	}
     if (bgcnt & 0x0040)
     {
         // vertical mosaic
         yoff -= CurUnit->BGMosaicY;
     }
-
-    u32 widexmask = (bgcnt & 0x4000) ? 0x100 : 0;
+	
+	u32 xoverflowmask = 0;
+	u32 widexmask = (bgcnt & 0x4000) ? 0x100 : 0;
+	
+	if(widexmask != 0x100 && !CurUnit->EverXScrolled[bgnum]) {
+		xoverflowmask = ~0xFF;
+	}
+    
 
     extpal = (CurUnit->DispCnt & 0x40000000);
     if (extpal) extpalslot = ((bgnum<2) && (bgcnt&0x2000)) ? (2+bgnum) : bgnum;
@@ -1069,7 +1078,7 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
             }
 
             // draw pixel
-            if (WindowMask[i] & (1<<bgnum))
+            if (!(xpos & xoverflowmask) && WindowMask[i] & (1<<bgnum))
             {
                 u32 tilexoff = (curtile & 0x0400) ? (7-(xpos&0x7)) : (xpos&0x7);
                 color = bgvram[(pixelsaddr + tilexoff) & bgvrammask];
@@ -1115,7 +1124,7 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
             }
 
             // draw pixel
-            if (WindowMask[i] & (1<<bgnum))
+            if (!(xpos & xoverflowmask) && WindowMask[i] & (1<<bgnum))
             {
                 u32 tilexoff = (curtile & 0x0400) ? (7-(xpos&0x7)) : (xpos&0x7);
                 if (tilexoff & 0x1)

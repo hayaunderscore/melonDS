@@ -189,6 +189,9 @@ void Unit::DoSavestate(Savestate* file)
 
     file->Var32(&Win0Active);
     file->Var32(&Win1Active);
+	for(int i=0; i<4; i++) {
+		file->Bool32(&EverXScrolled[i]);
+	}
 }
 
 u8 Unit::Read8(u32 addr)
@@ -267,7 +270,8 @@ u32 Unit::Read32(u32 addr)
 
 void Unit::Write8(u32 addr, u8 val)
 {
-    switch (addr & 0x00000FFF)
+	u32 reg = addr & 0x00000FFF;
+    switch (reg)
     {
     case 0x000:
         DispCnt = (DispCnt & 0xFFFFFF00) | val;
@@ -295,8 +299,21 @@ void Unit::Write8(u32 addr, u8 val)
     }
 
     if (!Enabled) return;
-
-    switch (addr & 0x00000FFF)
+	
+	if(reg >= 8 && reg < 16) {
+		int bg_idx = (reg-8)/2;
+		u16 new_value;
+		if(reg % 2) {
+			new_value = (BGCnt[bg_idx] & 0xFF00) | val;
+		} else {
+			new_value = (BGCnt[bg_idx] & 0x00FF) | (val << 8);
+		}
+		if(BGCnt[bg_idx] != new_value) {
+			EverXScrolled[bg_idx] = false;
+		}
+	}
+	
+    switch (reg)
     {
     case 0x008: BGCnt[0] = (BGCnt[0] & 0xFF00) | val; return;
     case 0x009: BGCnt[0] = (BGCnt[0] & 0x00FF) | (val << 8); return;
@@ -365,13 +382,16 @@ void Unit::Write8(u32 addr, u8 val)
         if (EVY > 16) EVY = 16;
         return;
     }
-
+	
+	
+	
     Log(LogLevel::Warn, "unknown GPU write8 %08X %02X\n", addr, val);
 }
 
 void Unit::Write16(u32 addr, u16 val)
 {
-    switch (addr & 0x00000FFF)
+	u32 reg = addr & 0x00000FFF;
+    switch (reg)
     {
     case 0x000:
         DispCnt = (DispCnt & 0xFFFF0000) | val;
@@ -399,8 +419,12 @@ void Unit::Write16(u32 addr, u16 val)
     }
 
     if (!Enabled) return;
-
-    switch (addr & 0x00000FFF)
+	
+	if(reg >= 8 && reg < 16 && BGCnt[(reg-8)/2] != val) {
+		EverXScrolled[(reg-8)/2] = false;
+	}
+	
+    switch (reg)
     {
     case 0x008: BGCnt[0] = val; return;
     case 0x00A: BGCnt[1] = val; return;
