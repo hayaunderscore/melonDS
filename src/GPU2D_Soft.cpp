@@ -1739,7 +1739,10 @@ void SoftRenderer::DrawSprites(u32 line, Unit* unit)
                     continue;
 
                 s32 xpos = (s32)(attrib[1] << 23) >> 23;
-                if (xpos <= -boundwidth)
+				if(xpos < -128) {
+					xpos += 512;
+				}
+                if (xpos <= -boundwidth || xpos >= GPU::WideScreenWidth)
                     continue;
 
                 u32 rotparamgroup = (attrib[1] >> 9) & 0x1F;
@@ -1763,7 +1766,10 @@ void SoftRenderer::DrawSprites(u32 line, Unit* unit)
                     continue;
 
                 s32 xpos = (s32)(attrib[1] << 23) >> 23;
-                if (xpos <= -width)
+				if(xpos < -64) {
+					xpos += 512;
+				}
+                if (xpos <= -width || xpos >= GPU::WideScreenWidth)
                     continue;
 
                 DoDrawSprite(Normal, sprnum, width, height, xpos, ypos);
