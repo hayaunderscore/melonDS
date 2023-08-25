@@ -3567,7 +3567,7 @@ void ARM9IOWrite16(u32 addr, u16 val)
         return;
 
     case 0x04000304:
-        PowerControl9 = val & 0xC20F;
+        PowerControl9 = val & 0xF20F;
         GPU::SetPowerCnt(PowerControl9);
         return;
     }
@@ -3733,7 +3733,7 @@ void ARM9IOWrite32(u32 addr, u32 val)
     case 0x040002BC: SqrtVal[1] = val; StartSqrt(); return;
 
     case 0x04000304:
-        PowerControl9 = val & 0xC20F;
+        PowerControl9 = val & 0xF20F;
         GPU::SetPowerCnt(PowerControl9);
         return;
 

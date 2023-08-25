@@ -756,4 +756,13 @@ void Unit::GetOBJVRAM(u8*& data, u32& mask)
     }
 }
 
+bool Unit::AllowTextRepeatToggle()
+{
+	if(Num == 0) {
+		return (NDS::PowerControl9 & 0x1000) != 0;
+	} else {
+		return (NDS::PowerControl9 & 0x2000) != 0;
+	}
+}
+
 }

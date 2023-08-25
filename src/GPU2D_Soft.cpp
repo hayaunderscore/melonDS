@@ -604,7 +604,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
 #define DoDrawBG(type, line, num) \
     do \
     { \
-        if (!(CurUnit->DispCnt & 0x800000) && (bgCnt[num] & 0x0040) && (CurUnit->BGMosaicSize[0] > 0)) \
+        if (CurUnit->AllowTextRepeatToggle() && (bgCnt[num] & 0x0040) && (CurUnit->BGMosaicSize[0] > 0)) \
         { \
             if (GPU3D::CurrentRenderer->Accelerated) DrawBG_##type<true, DrawPixel_Accel>(line, num); \
             else DrawBG_##type<true, DrawPixel_Normal>(line, num); \
@@ -989,7 +989,7 @@ void SoftRenderer::DrawBG_Text(u32 line, u32 bgnum)
 	}
 	u16 xoverflowmask = 0;
 	u32 widexmask = (bgcnt & 0x4000) ? 0x100 : 0;
-	if(CurUnit->DispCnt & 0x800000) {
+	if(CurUnit->AllowTextRepeatToggle()) {
 		if (!(bgcnt & 0x0040)) {
 			xoverflowmask = ~(0xFF|widexmask);
 		}
