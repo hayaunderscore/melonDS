@@ -604,7 +604,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
 #define DoDrawBG(type, line, num) \
     do \
     { \
-        if (CurUnit->AllowTextRepeatToggle() && (bgCnt[num] & 0x0040) && (CurUnit->BGMosaicSize[0] > 0)) \
+        if (!CurUnit->AllowTextRepeatToggle() && (bgCnt[num] & 0x0040) && (CurUnit->BGMosaicSize[0] > 0)) \
         { \
             if (GPU3D::CurrentRenderer->Accelerated) DrawBG_##type<true, DrawPixel_Accel>(line, num); \
             else DrawBG_##type<true, DrawPixel_Normal>(line, num); \
