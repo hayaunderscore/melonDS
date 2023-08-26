@@ -1340,6 +1340,38 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 
         if (bgcnt & 0x0004)
         {
+			if(rotA == 0x100 && rotC == 0x0 && !(bgcnt & 0x2000)) {
+				if(rotY < 0 || rotY > ymask) {
+					return;
+				}
+				u32 row_offset = (((rotY & ymask) >> 8) << (yshift+1));
+				u32 addr = tilemapaddr+row_offset;
+				u32 bank, offset;
+				if(CurUnit->MapBGVRAMAddr(addr, bank, offset)) {
+					if(GPU::LineCaptureValidate(bank, offset >> 9)) {
+						s32 wrapW = (((xmask+1) >> 8)*GPU::WideScreenWidth)/256;
+						addr = (addr*GPU::WideScreenWidth)/256;
+						u16 *vramCustom = (u16 *)&GPU::VRAMCaptureCustom[bank][addr];
+						s32 startX = rotX >> 8;
+						if(startX < -GPU::WideScreenWidth || startX >= wrapW) {
+							return;
+						}
+						for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
+							if(startX+i < 0 || startX+i >= wrapW) {
+								continue;
+							}
+							u16 color = vramCustom[startX+i];
+							if(color & 0x8000) {
+								drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
+							}
+						}
+						CurUnit->BGXRefInternal[bgnum-2] += rotB;
+						CurUnit->BGYRefInternal[bgnum-2] += rotD;
+						return;
+					}
+				}
+				
+			}
             // direct color bitmap
 
             u16 color;
@@ -1365,8 +1397,9 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
                     {
                         color = *(u16*)&bgvram[(tilemapaddr + (((((finalY & ymask) >> 8) << yshift) + ((finalX & xmask) >> 8)) << 1)) & bgvrammask];
 
-                        if (color & 0x8000)
-                            drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
+                        if(color & 0x8000) {
+							drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
+						}
                     }
                 }
 
