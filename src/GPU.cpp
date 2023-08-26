@@ -84,6 +84,10 @@ u8* VRAMPtr_AOBJ[0x10];
 u8* VRAMPtr_BBG[0x8];
 u8* VRAMPtr_BOBJ[0x8];
 
+u8 VRAMCaptureNative[4][256*256*2];
+u8 VRAMCaptureCustom[4][256*GPU::WideScreenWidth*2];
+bool VRAMLineCaptureIsCustom[4][256];
+
 int FrontBuffer;
 u32* Framebuffer[2][2];
 int Renderer = 0;
@@ -267,7 +271,10 @@ void Reset()
         Framebuffer[0][1][i] = 0xFFFFFFFF;
         Framebuffer[1][1][i] = 0xFFFFFFFF;
     }
-
+	for(u32 i=0; i<4; i++) {
+		LineCaptureResetState(i);
+		
+	}
     GPU2D_A.Reset();
     GPU2D_B.Reset();
     GPU3D::Reset();
@@ -1400,6 +1407,41 @@ bool MakeVRAMFlat_AOBJExtPalCoherent(NonStupidBitField<8*1024/VRAMDirtyGranulari
 bool MakeVRAMFlat_BOBJExtPalCoherent(NonStupidBitField<8*1024/VRAMDirtyGranularity>& dirty)
 {
     return CopyLinearVRAM<8*1024>(VRAMFlat_BOBJExtPal, &VRAMMap_BOBJExtPal, dirty, ReadVRAM_BOBJExtPal<u64>);
+}
+
+void LineCaptureResetState(u32 block)
+{
+	for(u32 i=0; i<256; i++) {
+		VRAMLineCaptureIsCustom[block][i] = false;
+	}
+}
+
+bool LineCaptureValidate(u32 block, u32 line)
+{
+	if(block >= 4 || line >= 256 || !VRAMLineCaptureIsCustom[block][line]) {
+		return false;
+	}
+	u16 *nativeCaptureLine = (u16 *)&VRAMCaptureNative[block][line*256*2];
+	u16 *nativeVRAMLine = (u16 *)&VRAM[block][line*256*2];
+	bool result = memcmp(nativeCaptureLine, nativeVRAMLine, 256*2) == 0;
+	VRAMLineCaptureIsCustom[block][line] = result;
+	return result;
+}
+
+bool LineCaptureIsCustom(u32 block, u32 line)
+{
+	if(block >= 4 || line >= 256) {
+		return false;
+	}
+	return VRAMLineCaptureIsCustom[block][line];
+}
+
+void LineCaptureMarkCustom(u32 block, u32 line)
+{
+	if(block >= 4 || line >= 256) {
+		return;
+	}
+	VRAMLineCaptureIsCustom[block][line] = true;
 }
 
 }

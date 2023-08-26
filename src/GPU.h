@@ -53,6 +53,7 @@ extern u8 VRAM_H[ 32*1024];
 extern u8 VRAM_I[ 16*1024];
 
 extern u8* const VRAM[9];
+extern u32 const VRAMMask[9];
 
 extern u32 VRAMMap_LCDC;
 extern u32 VRAMMap_ABG[0x20];
@@ -131,6 +132,10 @@ extern u8 VRAMFlat_BOBJExtPal[8*1024];
 
 extern u8 VRAMFlat_Texture[512*1024];
 extern u8 VRAMFlat_TexPal[128*1024];
+
+extern u8 VRAMCaptureNative[4][256*256*2];
+extern u8 VRAMCaptureCustom[4][256*GPU::WideScreenWidth*2];
+extern bool VRAMLineCaptureIsCustom[4][256];
 
 bool MakeVRAMFlat_ABGCoherent(NonStupidBitField<512*1024/VRAMDirtyGranularity>& dirty);
 bool MakeVRAMFlat_BBGCoherent(NonStupidBitField<128*1024/VRAMDirtyGranularity>& dirty);
@@ -617,6 +622,15 @@ void DisplayFIFO(u32 x);
 void SetDispStat(u32 cpu, u16 val);
 
 void SetVCount(u16 val);
+
+void LineCaptureResetState(u32 block);
+
+bool LineCaptureValidate(u32 block, u32 line);
+
+bool LineCaptureIsCustom(u32 block, u32 line);
+
+void LineCaptureMarkCustom(u32 block, u32 line);
+
 }
 
 #include "GPU3D.h"

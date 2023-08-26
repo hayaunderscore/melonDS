@@ -756,6 +756,42 @@ void Unit::GetOBJVRAM(u8*& data, u32& mask)
     }
 }
 
+bool Unit::MapBGVRAMAddr(u32 addr, u32 &bank, u32 &offset)
+{
+	u32 mapping;
+	if(Num == 0) {
+		mapping = GPU::VRAMMap_ABG[(addr & 0x7FFFF) >> 14];
+	} else {
+		mapping = GPU::VRAMMap_BBG[(addr & 0x1FFFF) >> 14];
+	}
+	if(!mapping || (mapping & (mapping-1)) != 0) {
+		bank = 9;
+		offset = 0;
+		return false;
+	}
+	bank = __builtin_ctz(mapping);
+	offset = addr & GPU::VRAMMask[bank];
+	return true;
+}
+
+bool Unit::MapOBJVRAMAddr(u32 addr, u32 &bank, u32 &offset)
+{
+	u32 mapping;
+	if(Num == 0) {
+		mapping = GPU::VRAMMap_AOBJ[(addr & 0x3FFFF) >> 14];
+	} else {
+		mapping = GPU::VRAMMap_BOBJ[(addr & 0x1FFFF) >> 14];
+	}
+	if(!mapping || (mapping & (mapping-1)) != 0) {
+		bank = 9;
+		offset = 0;
+		return false;
+	}
+	bank = __builtin_ctz(mapping);
+	offset = addr & GPU::VRAMMask[bank];
+	return true;
+}
+
 bool Unit::AllowTextRepeatToggle()
 {
 	if(Num == 0) {

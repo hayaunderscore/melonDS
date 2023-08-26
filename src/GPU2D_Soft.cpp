@@ -379,23 +379,12 @@ void SoftRenderer::VBlankEnd(Unit* unitA, Unit* unitB)
 #endif
 }
 
-void SoftRenderer::DoCapture(u32 line, u32 width)
+void SoftRenderer::DoCaptureCustom(u32 line, u32 width, u16 *dst)
 {
-    u32 captureCnt = CurUnit->CaptureCnt;
-    u32 dstvram = (captureCnt >> 16) & 0x3;
-
-    // TODO: confirm this
-    // it should work like VRAM display mode, which requires VRAM to be mapped to LCDC
-    if (!(GPU::VRAMMap_LCDC & (1<<dstvram)))
-        return;
-
-    u16* dst = (u16*)GPU::VRAM[dstvram];
-    u32 dstaddr = (((captureCnt >> 18) & 0x3) << 14) + (line * width);
-
     // TODO: handle 3D in GPU3D::CurrentRenderer->Accelerated mode!!
 
     u32* srcA;
-    if (captureCnt & (1<<24))
+    if (CurUnit->CaptureCnt & (1<<24))
     {
         srcA = _3DLine;
     }
@@ -462,11 +451,12 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
             }
         }
     }
-
+	
+	float stepB = 256.0f/GPU::WideScreenWidth;
     u16* srcB = NULL;
     u32 srcBaddr = line * 256;
 
-    if (captureCnt & (1<<25))
+    if (CurUnit->CaptureCnt & (1<<25))
     {
         srcB = &CurUnit->DispFIFOBuffer[0];
         srcBaddr = 0;
@@ -474,20 +464,23 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
     else
     {
         u32 srcvram = (CurUnit->DispCnt >> 18) & 0x3;
-        if (GPU::VRAMMap_LCDC & (1<<srcvram))
-            srcB = (u16*)GPU::VRAM[srcvram];
-
-        if (((CurUnit->DispCnt >> 16) & 0x3) != 2)
-            srcBaddr += ((captureCnt >> 26) & 0x3) << 14;
+		if (((CurUnit->DispCnt >> 16) & 0x3) != 2) {
+			srcBaddr += ((CurUnit->CaptureCnt >> 26) & 0x3) << 14;
+		}
+        if (GPU::VRAMMap_LCDC & (1<<srcvram)) {
+			srcB = (u16*)GPU::VRAM[srcvram];
+			u16 line = srcBaddr/256;
+			if(GPU::LineCaptureValidate(srcvram, line)) {
+				srcB = (u16 *)&GPU::VRAMCaptureCustom[srcvram][line*GPU::WideScreenWidth*2];
+				stepB = 1.0f;
+			} else {
+				srcB += (u16)srcBaddr;
+			}
+			
+		}
     }
 
-    dstaddr &= 0xFFFF;
-    srcBaddr &= 0xFFFF;
-
-    static_assert(GPU::VRAMDirtyGranularity == 512, "");
-    GPU::VRAMDirty[dstvram][(dstaddr * 2) / GPU::VRAMDirtyGranularity] = true;
-
-    switch ((captureCnt >> 29) & 0x3)
+    switch ((CurUnit->CaptureCnt >> 29) & 0x3)
     {
     case 0: // source A
         {
@@ -502,8 +495,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
                 u32 b = (val >> 17) & 0x1F;
                 u32 a = ((val >> 24) != 0) ? 0x8000 : 0;
 
-                dst[dstaddr] = r | (g << 5) | (b << 10) | a;
-                dstaddr = (dstaddr + 1) & 0xFFFF;
+                dst[i] = r | (g << 5) | (b << 10) | a;
             }
         }
         break;
@@ -512,19 +504,18 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
         {
             if (srcB)
             {
+				float x = 0;
                 for (u32 i = 0; i < width; i++)
                 {
-                    dst[dstaddr] = srcB[srcBaddr];
-                    srcBaddr = (srcBaddr + 1) & 0xFFFF;
-                    dstaddr = (dstaddr + 1) & 0xFFFF;
+                    dst[i] = srcB[(u32)x];
+					x += stepB;
                 }
             }
             else
             {
                 for (u32 i = 0; i < width; i++)
                 {
-                    dst[dstaddr] = 0;
-                    dstaddr = (dstaddr + 1) & 0xFFFF;
+                    dst[i] = 0;
                 }
             }
         }
@@ -533,8 +524,8 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
     case 2: // sources A+B
     case 3:
         {
-            u32 eva = captureCnt & 0x1F;
-            u32 evb = (captureCnt >> 8) & 0x1F;
+            u32 eva = CurUnit->CaptureCnt & 0x1F;
+            u32 evb = (CurUnit->CaptureCnt >> 8) & 0x1F;
 
             // checkme
             if (eva > 16) eva = 16;
@@ -542,6 +533,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
 
             if (srcB)
             {
+				float srcBx = 0;
                 for (u32 i = 0; i < width; i++)
                 {
                     u32 val = srcA[i];
@@ -553,7 +545,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
                     u32 bA = (val >> 17) & 0x1F;
                     u32 aA = ((val >> 24) != 0) ? 1 : 0;
 
-                    val = srcB[srcBaddr];
+                    val = srcB[(u32)srcBx];
 
                     u32 rB = val & 0x1F;
                     u32 gB = (val >> 5) & 0x1F;
@@ -569,9 +561,8 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
                     if (gD > 0x1F) gD = 0x1F;
                     if (bD > 0x1F) bD = 0x1F;
 
-                    dst[dstaddr] = rD | (gD << 5) | (bD << 10) | (aD << 15);
-                    srcBaddr = (srcBaddr + 1) & 0xFFFF;
-                    dstaddr = (dstaddr + 1) & 0xFFFF;
+                    dst[i] = rD | (gD << 5) | (bD << 10) | (aD << 15);
+                    srcBx += stepB;
                 }
             }
             else
@@ -592,13 +583,51 @@ void SoftRenderer::DoCapture(u32 line, u32 width)
                     u32 bD = ((bA * aA * eva) + 8) >> 4;
                     u32 aD = (eva>0 ? aA : 0);
 
-                    dst[dstaddr] = rD | (gD << 5) | (bD << 10) | (aD << 15);
-                    dstaddr = (dstaddr + 1) & 0xFFFF;
+                    dst[i] = rD | (gD << 5) | (bD << 10) | (aD << 15);
                 }
             }
         }
         break;
     }
+}
+
+void SoftRenderer::ReduceLineCapture(u16 *src, u32 src_w, u16 *dst, u32 dst_w)
+{
+	float dx = (float)src_w/(float)dst_w;
+	float x = 0;
+	for(u32 i=0; i<dst_w; i++) {
+		dst[i] = src[(u32)x];
+		x += dx;
+	}
+}
+
+void SoftRenderer::DoCapture(u32 line, u32 width)
+{
+	u32 dstvram = (CurUnit->CaptureCnt >> 16) & 0x3;
+
+    // TODO: confirm this
+    // it should work like VRAM display mode, which requires VRAM to be mapped to LCDC
+    if (!(GPU::VRAMMap_LCDC & (1<<dstvram)))
+        return;
+	
+	u16 captureW = (width == 128) ? GPU::WideScreenWidth/2 : GPU::WideScreenWidth;
+	u32 captureCustomOfs = (((CurUnit->CaptureCnt >> 18) & 0x3)*GPU::WideScreenWidth*64) + (line * captureW);
+	captureCustomOfs %= GPU::WideScreenWidth*256;
+	u16 *captureCustom = (u16 *)&GPU::VRAMCaptureCustom[dstvram][captureCustomOfs*2];
+	
+	DoCaptureCustom(line, captureW, captureCustom);
+	
+	u16* dst = (u16*)GPU::VRAM[dstvram];
+    u32 dstaddr = (((CurUnit->CaptureCnt >> 18) & 0x3) << 14) + (line * width);
+	dstaddr &= 0xFFFF;
+	
+	static_assert(GPU::VRAMDirtyGranularity == 512, "");
+    GPU::VRAMDirty[dstvram][(dstaddr * 2) / GPU::VRAMDirtyGranularity] = true;
+	
+	ReduceLineCapture(captureCustom, captureW, (u16 *)&GPU::VRAMCaptureNative[dstvram][dstaddr*2], width);
+	memcpy(&dst[dstaddr], &GPU::VRAMCaptureNative[dstvram][dstaddr*2], 256*2);
+	GPU::LineCaptureMarkCustom(dstvram, dstaddr/256);
+	
 }
 
 #define DoDrawBG(type, line, num) \
@@ -1604,6 +1633,21 @@ void SoftRenderer::ApplySpriteMosaicX()
 template <SoftRenderer::DrawPixel drawPixel>
 void SoftRenderer::InterleaveSprites(u32 prio)
 {
+	u8 prio_val = (prio & 0x30000) >> 16;
+	if(NumBMPSpritePixels[CurUnit->Num][prio_val] == 256 && VRAMOBJAddress[CurUnit->Num][prio_val] < 0x40000) {
+		u32 bank, offset;
+		if(CurUnit->MapOBJVRAMAddr(VRAMOBJAddress[CurUnit->Num][prio_val], bank, offset)) {
+			u32 line = offset >> 9;
+			if(GPU::LineCaptureValidate(bank, line)) {
+				u32 attr = VRAMOBJAttr[CurUnit->Num][prio_val] << 24;
+				u16 *capture = (u16 *)&GPU::VRAMCaptureCustom[bank][line*GPU::WideScreenWidth*2];
+				for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
+					drawPixel(&BGOBJLine[i], capture[i], attr);
+				}
+				return;
+			}
+		}
+	}
     u32* objLine = OBJLine[CurUnit->Num];
     u16* pal = (u16*)&GPU::Palette[CurUnit->Num ? 0x600 : 0x200];
 
@@ -1661,6 +1705,15 @@ void SoftRenderer::InterleaveSprites(u32 prio)
         DrawSprite_##type<false>(__VA_ARGS__); \
     }
 
+void SoftRenderer::ResetSpriteCaptureParams()
+{
+	for(int i=0; i<4; i++) {
+		NumBMPSpritePixels[CurUnit->Num][i] = 0;
+		VRAMOBJAddress[CurUnit->Num][i] = 0x40000;
+		VRAMOBJAttr[CurUnit->Num][i] = 0;
+	}
+}
+
 void SoftRenderer::DrawSprites(u32 line, Unit* unit)
 {
     CurUnit = unit;
@@ -1691,6 +1744,7 @@ void SoftRenderer::DrawSprites(u32 line, Unit* unit)
     NumSprites[CurUnit->Num] = 0;
     memset(OBJLine[CurUnit->Num], 0, GPU::WideScreenWidth*4);
     memset(OBJWindow[CurUnit->Num], 0, GPU::WideScreenWidth);
+	ResetSpriteCaptureParams();
     if (!(CurUnit->DispCnt & 0x1000)) return;
 
     memset(OBJIndex, 0xFF, GPU::WideScreenWidth);
@@ -2032,7 +2086,6 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
         // apply Y mosaic
         pixelattr |= 0x100000;
     }
-
     u8* objvram;
     u32 objvrammask;
     CurUnit->GetOBJVRAM(objvram, objvrammask);
@@ -2070,7 +2123,8 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
         alpha++;
 
         pixelattr |= (0xC0000000 | (alpha << 24));
-
+		
+		u8 prio = (pixelattr & 0x30000) >> 16;
         u32 pixelsaddr = tilenum;
         if (CurUnit->DispCnt & 0x40)
         {
@@ -2100,7 +2154,7 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
                 pixelsaddr += (ypos * 128 * 2);
             }
         }
-
+		u32 oldpixelsaddr = pixelsaddr;
         s32 pixelstride;
 
         if (attrib[1] & 0x1000) // xflip
@@ -2123,13 +2177,19 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
 
             if (color & 0x8000)
             {
-                if (window) objWindow[xpos] = 1;
-                else      { objLine[xpos] = color | pixelattr; objIndex[xpos] = num; }
+                if (window) {
+					objWindow[xpos] = 1;
+                } else {
+					NumBMPSpritePixels[CurUnit->Num][prio]++;
+					objLine[xpos] = color | pixelattr;
+					objIndex[xpos] = num;
+				}
             }
             else if (!window)
             {
                 if (objLine[xpos] == 0)
                 {
+					NumBMPSpritePixels[CurUnit->Num][prio]++;
                     objLine[xpos] = pixelattr & 0x180000;
                     objIndex[xpos] = num;
                 }
@@ -2138,6 +2198,14 @@ void SoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s
             xoff++;
             xpos++;
         }
+		u32 bank, offset;
+		if(CurUnit->MapOBJVRAMAddr(oldpixelsaddr, bank, offset)) {
+			u32 line = offset >> 9;
+			if(GPU::LineCaptureIsCustom(bank, line) && (offset & 0x1FF) == 0) {
+				VRAMOBJAddress[CurUnit->Num][prio] = oldpixelsaddr;
+				VRAMOBJAttr[CurUnit->Num][prio] = pixelattr;
+			}
+		}
     }
     else
     {

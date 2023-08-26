@@ -73,7 +73,9 @@ public:
 
     void UpdateMosaicCounters(u32 line);
     void CalculateWindowMask(u32 line, u8* windowMask, u8* objWindow);
-
+	bool MapBGVRAMAddr(u32 addr, u32 &bank, u32 &offset);
+	bool MapOBJVRAMAddr(u32 addr, u32 &bank, u32 &offset);
+	
     u32 Num;
     bool Enabled;
 

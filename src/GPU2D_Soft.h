@@ -42,12 +42,15 @@ private:
     alignas(8) u32 OBJLine[2][GPU::WideScreenWidth];
     alignas(8) u8 OBJIndex[2][GPU::WideScreenWidth];
     alignas(8) u8 OBJWindow[2][GPU::WideScreenWidth];
-
+	
+	u16 NumBMPSpritePixels[2][4];
+	u32 VRAMOBJAddress[2][4];
+	u8 VRAMOBJAttr[2][4];
     u32 NumSprites[2];
 
     u8* CurBGXMosaicTable;
     u8 MosaicTable[16][GPU::WideScreenWidth];
-
+	
     u32 ColorBlend4(u32 val1, u32 val2, u32 eva, u32 evb);
     u32 ColorBlend5(u32 val1, u32 val2);
     u32 ColorBrightnessUp(u32 val, u32 factor, u32 bias);
@@ -73,10 +76,15 @@ private:
     void ApplySpriteMosaicX();
     template<DrawPixel drawPixel>
     void InterleaveSprites(u32 prio);
+	void ResetSpriteCaptureParams();
     template<bool window> void DrawSprite_Rotscale(u32 num, u32 boundwidth, u32 boundheight, u32 width, u32 height, s32 xpos, s32 ypos);
     template<bool window> void DrawSprite_Normal(u32 num, u32 width, u32 height, s32 xpos, s32 ypos);
-
+	
+	void DoCaptureCustom(u32 line, u32 width, u16 *dst);
     void DoCapture(u32 line, u32 width);
+	
+	void ReduceLineCapture(u16 *src, u32 src_w, u16 *dst, u32 dst_w);
+	
 };
 
 }
