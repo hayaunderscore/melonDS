@@ -1340,27 +1340,20 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 
         if (bgcnt & 0x0004)
         {
-			if(rotA == 0x100 && rotC == 0x0 && !(bgcnt & 0x2000)) {
-				if(rotY < 0 || rotY > ymask) {
-					return;
-				}
-				u32 row_offset = (((rotY & ymask) >> 8) << (yshift+1));
-				u32 addr = tilemapaddr+row_offset;
+			if(rotA == 0x100 && rotC == 0 && !(bgcnt & 0x2000)) {
+				u32 rowaddr = tilemapaddr+(((rotY & ymask) >> 8) << (yshift+1));
+				u32 width = (((xmask+1) >> 8)*GPU::WideScreenWidth)/256;
 				u32 bank, offset;
-				if(CurUnit->MapBGVRAMAddr(addr, bank, offset)) {
+				u32 xofs = rotX >> 8;
+				if(CurUnit->MapBGVRAMAddr(rowaddr, bank, offset)) {
 					if(GPU::LineCaptureValidate(bank, offset >> 9)) {
-						s32 wrapW = (((xmask+1) >> 8)*GPU::WideScreenWidth)/256;
-						addr = (addr*GPU::WideScreenWidth)/256;
-						u16 *vramCustom = (u16 *)&GPU::VRAMCaptureCustom[bank][addr];
-						s32 startX = rotX >> 8;
-						if(startX < -GPU::WideScreenWidth || startX >= wrapW) {
-							return;
-						}
+						offset = (offset*GPU::WideScreenWidth)/256;
+						u16 *vramCustom = (u16 *)&GPU::VRAMCaptureCustom[bank][offset];
 						for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
-							if(startX+i < 0 || startX+i >= wrapW) {
+							if(xofs+i < 0 || xofs+i >= width) {
 								continue;
 							}
-							u16 color = vramCustom[startX+i];
+							u16 color = vramCustom[xofs+i];
 							if(color & 0x8000) {
 								drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
 							}
