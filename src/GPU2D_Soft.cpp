@@ -255,21 +255,34 @@ void SoftRenderer::DrawScanline(u32 line, Unit* unit)
             u32 vrambank = (CurUnit->DispCnt >> 18) & 0x3;
             if (GPU::VRAMMap_LCDC & (1<<vrambank))
             {
-                u16* vram = (u16*)GPU::VRAM[vrambank];
-                vram = &vram[line * 256];
+				if(GPU::LineCaptureIsCustom(vrambank, line)) {
+					u16* vram = (u16*)&GPU::VRAMCaptureCustom[vrambank][line*GPU::WideScreenWidth*2];
+					for (int i = 0; i < GPU::WideScreenWidth; i++) {
+						u16 color = vram[i];
+						u8 r = (color & 0x001F) << 1;
+						u8 g = (color & 0x03E0) >> 4;
+						u8 b = (color & 0x7C00) >> 9;
 
-                for (int i = 0; i < 256; i++)
-                {
-                    u16 color = vram[i];
-                    u8 r = (color & 0x001F) << 1;
-                    u8 g = (color & 0x03E0) >> 4;
-                    u8 b = (color & 0x7C00) >> 9;
+						dst[i] = r | (g << 8) | (b << 16);
+					}
+				} else {
+					u16* vram = (u16*)GPU::VRAM[vrambank];
+					vram = &vram[line * 256];
 
-                    dst[i] = r | (g << 8) | (b << 16);
-                }
-				for(int i=256; i<GPU::WideScreenWidth; i++) {
-					dst[i] = 0;
+					for (int i = 0; i < 256; i++)
+					{
+						u16 color = vram[i];
+						u8 r = (color & 0x001F) << 1;
+						u8 g = (color & 0x03E0) >> 4;
+						u8 b = (color & 0x7C00) >> 9;
+
+						dst[i] = r | (g << 8) | (b << 16);
+					}
+					for(int i=256; i<GPU::WideScreenWidth; i++) {
+						dst[i] = 0;
+					}
 				}
+                
             }
             else
             {
