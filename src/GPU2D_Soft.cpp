@@ -1360,17 +1360,19 @@ void SoftRenderer::DrawBG_Extended(u32 line, u32 bgnum)
 				u32 xofs = rotX >> 8;
 				if(CurUnit->MapBGVRAMAddr(rowaddr, bank, offset)) {
 					if(GPU::LineCaptureValidate(bank, offset >> 9)) {
-						offset = (offset*GPU::WideScreenWidth)/256;
-						u16 *vramCustom = (u16 *)&GPU::VRAMCaptureCustom[bank][offset];
-						for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
-							if(xofs+i < 0 || xofs+i >= width) {
-								continue;
-							}
-							u16 color = vramCustom[xofs+i];
-							if(color & 0x8000) {
-								drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
-							}
-						}
+                        if(!(rotY & ofymask)) {
+                            offset = (offset*GPU::WideScreenWidth)/256;
+                            u16 *vramCustom = (u16 *)&GPU::VRAMCaptureCustom[bank][offset];
+                            for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
+                                if(xofs+i < 0 || xofs+i >= width) {
+                                    continue;
+                                }
+                                u16 color = vramCustom[xofs+i];
+                                if(color & 0x8000) {
+                                    drawPixel(&BGOBJLine[i], color, 0x01000000<<bgnum);
+                                }
+                            }
+                        }
 						CurUnit->BGXRefInternal[bgnum-2] += rotB;
 						CurUnit->BGYRefInternal[bgnum-2] += rotD;
 						return;
