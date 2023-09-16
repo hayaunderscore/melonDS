@@ -1348,7 +1348,7 @@ void SubmitPolygon()
 
     u32 vtop = 0, vbot = 0;
     s32 ytop = 192, ybot = 0;
-    s32 xtop = 256, xbot = 0;
+    s32 xtop = 336, xbot = 0;
     u32 wsize = 0;
 
     for (int i = 0; i < nverts; i++)

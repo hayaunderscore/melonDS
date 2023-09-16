@@ -1680,7 +1680,7 @@ void SoftRenderer::InterleaveSprites(u32 prio)
 		if(CurUnit->MapOBJVRAMAddr(VRAMOBJAddress[CurUnit->Num][prio_val], bank, offset)) {
 			u32 line = offset >> 9;
 			if(GPU::LineCaptureValidate(bank, line)) {
-				u32 attr = VRAMOBJAttr[CurUnit->Num][prio_val] << 24;
+				u32 attr = VRAMOBJAttr[CurUnit->Num][prio_val] & 0xFF000000;
 				u16 *capture = (u16 *)&GPU::VRAMCaptureCustom[bank][line*GPU::WideScreenWidth*2];
 				for (u32 i = 0; i < GPU::WideScreenWidth; i++) {
 					drawPixel(&BGOBJLine[i], capture[i], attr);

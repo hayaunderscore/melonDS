@@ -263,7 +263,7 @@ void main()
 
         ivec4 p00 = GetFullPixel(val1, val2, val3, _3dpix);
 
-        int xdisp = 1 - int(step(255, fTexcoord.x));
+        int xdisp = 1 - int(step(335, fTexcoord.x));
         int ydisp = 1 - int(step(191, ypos));
 
         ivec4 p01 = GetFullPixel(ivec4(texelFetch(ScreenTex, ivec2(fTexcoord) + ivec2(xdisp+0  ,0), 0)),
