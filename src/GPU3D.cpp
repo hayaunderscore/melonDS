@@ -1206,7 +1206,7 @@ void SubmitPolygon()
             posX = ((posX * Viewport[4]) / den) + Viewport[0];
             posY = ((posY * Viewport[5]) / den) + Viewport[3];
         }
-        vtx->FinalPosition[0] = ((posX & 0x1FF)*GPU::WideScreenWidth)/256;
+        vtx->FinalPosition[0] = posX & 0x1FF;
         vtx->FinalPosition[1] = posY & 0xFF;
 
         // hi-res positions
@@ -1216,7 +1216,7 @@ void SubmitPolygon()
             posX = ((((s64)(vtx->Position[0] + w) * Viewport[4]) << 4) / (((s64)w) << 1)) + (Viewport[0] << 4);
             posY = ((((s64)(-vtx->Position[1] + w) * Viewport[5]) << 4) / (((s64)w) << 1)) + (Viewport[3] << 4);
 
-			vtx->HiresPosition[0] = ((posX & 0x1FFF)*GPU::WideScreenWidth)/256;
+			vtx->HiresPosition[0] = posX & 0x1FFF;
             vtx->HiresPosition[1] = posY & 0xFFF;
         }
     }
@@ -2185,6 +2185,9 @@ void ExecuteCommand()
             Viewport[3] = (191 - (entry.Param >> 24)) & 0xFF;             // y1
             Viewport[4] = (Viewport[2] - Viewport[0] + 1) & 0x1FF;          // width
             Viewport[5] = (Viewport[1] - Viewport[3] + 1) & 0xFF;           // height
+			
+			Viewport[0] = ((Viewport[0]*GPU::WideScreenWidth)+128)/256;
+			Viewport[4] = ((Viewport[4]*GPU::WideScreenWidth)+128)/256;
             break;
 
         case 0x72: // vec test
