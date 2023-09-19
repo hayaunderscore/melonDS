@@ -1565,12 +1565,19 @@ void SoftRenderer::ClearBuffers()
     {
 		float src_x_step = (RenderDispCnt & 0x8000) ? (256.0f/GPU::WideScreenWidth) : 1.0f;
 		float src_x = (RenderClearAttr2 >> 16) & 0xFF;
-		int dst_w = (RenderDispCnt & 0x8000) ? GPU::WideScreenWidth : 256;
+        int min_x = 0;
+        int max_x = GPU::WideScreenWidth;
+        
         u8 yoff = (RenderClearAttr2 >> 24) & 0xFF;
-
+        
+        if(RenderDispCnt & 0x8000) {
+            min_x = (GPU::WideScreenWidth-256)/2.0f;
+            max_x = min_x+256;
+        }
+        
         for (int y = 0; y < ScanlineWidth*192; y+=ScanlineWidth)
         {
-            for (int x = 0; x < dst_w; x++)
+            for (int x = 0; x < GPU::WideScreenWidth; x++)
             {
 				u8 xoff = src_x;
                 u16 val2 = ReadVRAM_Texture<u16>(0x40000 + (yoff << 9) + (xoff << 1));
@@ -1589,8 +1596,10 @@ void SoftRenderer::ClearBuffers()
                 ColorBuffer[pixeladdr] = color;
                 DepthBuffer[pixeladdr] = z;
                 AttrBuffer[pixeladdr] = polyid | (val3 & 0x8000);
-
-                src_x += src_x_step;
+                
+                if(x < min_x || x >= max_x) {
+                    src_x += src_x_step;
+                }
             }
 
             yoff++;

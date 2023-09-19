@@ -664,6 +664,33 @@ void MatrixLoad4x3(s32* m, s32* s)
     m[12] = s[9]; m[13] = s[10]; m[14] = s[11]; m[15] = 0x1000;
 }
 
+void MatrixMult4x4AspectCorrect(s32* m, s32* s)
+{
+    s32 tmp[16];
+    memcpy(tmp, m, 16*4);
+
+    // m = s*m
+    m[0] = (((((s64)s[0]*tmp[0])*256)/GPU::WideScreenWidth) + (s64)s[1]*tmp[4] + (s64)s[2]*tmp[8] + (s64)s[3]*tmp[12]) >> 12;
+    m[1] = ((s64)s[0]*tmp[1] + (s64)s[1]*tmp[5] + (s64)s[2]*tmp[9] + (s64)s[3]*tmp[13]) >> 12;
+    m[2] = ((s64)s[0]*tmp[2] + (s64)s[1]*tmp[6] + (s64)s[2]*tmp[10] + (s64)s[3]*tmp[14]) >> 12;
+    m[3] = ((s64)s[0]*tmp[3] + (s64)s[1]*tmp[7] + (s64)s[2]*tmp[11] + (s64)s[3]*tmp[15]) >> 12;
+
+    m[4] = (((((s64)s[4]*tmp[0])*256)/GPU::WideScreenWidth) + (s64)s[5]*tmp[4] + (s64)s[6]*tmp[8] + (s64)s[7]*tmp[12]) >> 12;
+    m[5] = ((s64)s[4]*tmp[1] + (s64)s[5]*tmp[5] + (s64)s[6]*tmp[9] + (s64)s[7]*tmp[13]) >> 12;
+    m[6] = ((s64)s[4]*tmp[2] + (s64)s[5]*tmp[6] + (s64)s[6]*tmp[10] + (s64)s[7]*tmp[14]) >> 12;
+    m[7] = ((s64)s[4]*tmp[3] + (s64)s[5]*tmp[7] + (s64)s[6]*tmp[11] + (s64)s[7]*tmp[15]) >> 12;
+
+    m[8] = (((((s64)s[8]*tmp[0])*256)/GPU::WideScreenWidth) + (s64)s[9]*tmp[4] + (s64)s[10]*tmp[8] + (s64)s[11]*tmp[12]) >> 12;
+    m[9] = ((s64)s[8]*tmp[1] + (s64)s[9]*tmp[5] + (s64)s[10]*tmp[9] + (s64)s[11]*tmp[13]) >> 12;
+    m[10] = ((s64)s[8]*tmp[2] + (s64)s[9]*tmp[6] + (s64)s[10]*tmp[10] + (s64)s[11]*tmp[14]) >> 12;
+    m[11] = ((s64)s[8]*tmp[3] + (s64)s[9]*tmp[7] + (s64)s[10]*tmp[11] + (s64)s[11]*tmp[15]) >> 12;
+
+    m[12] = (((((s64)s[12]*tmp[0])*256)/GPU::WideScreenWidth) + (s64)s[13]*tmp[4] + (s64)s[14]*tmp[8] + (s64)s[15]*tmp[12]) >> 12;
+    m[13] = ((s64)s[12]*tmp[1] + (s64)s[13]*tmp[5] + (s64)s[14]*tmp[9] + (s64)s[15]*tmp[13]) >> 12;
+    m[14] = ((s64)s[12]*tmp[2] + (s64)s[13]*tmp[6] + (s64)s[14]*tmp[10] + (s64)s[15]*tmp[14]) >> 12;
+    m[15] = ((s64)s[12]*tmp[3] + (s64)s[13]*tmp[7] + (s64)s[14]*tmp[11] + (s64)s[15]*tmp[15]) >> 12;
+}
+
 void MatrixMult4x4(s32* m, s32* s)
 {
     s32 tmp[16];
@@ -1206,10 +1233,7 @@ void SubmitPolygon()
             posX = ((posX * Viewport[4]) / den) + Viewport[0];
             posY = ((posY * Viewport[5]) / den) + Viewport[3];
         }
-		vtx->FinalPosition[0] = posX & 0x1FF;
-		if(DispCnt & 0x8000) {
-			vtx->FinalPosition[0] = (vtx->FinalPosition[0]*GPU::WideScreenWidth)/256;
-		}
+        vtx->FinalPosition[0] = ((posX & 0x1FF)*GPU::WideScreenWidth)/256;
         vtx->FinalPosition[1] = posY & 0xFF;
 
         // hi-res positions
@@ -1219,10 +1243,7 @@ void SubmitPolygon()
             posX = ((((s64)(vtx->Position[0] + w) * Viewport[4]) << 4) / (((s64)w) << 1)) + (Viewport[0] << 4);
             posY = ((((s64)(-vtx->Position[1] + w) * Viewport[5]) << 4) / (((s64)w) << 1)) + (Viewport[3] << 4);
 
-            vtx->HiresPosition[0] = posX & 0x1FFF;
-			if(DispCnt & 0x8000) {
-				vtx->HiresPosition[0] = (vtx->HiresPosition[0]*GPU::WideScreenWidth)/256;
-			}
+			vtx->HiresPosition[0] = ((posX & 0x1FFF)*GPU::WideScreenWidth)/256;
             vtx->HiresPosition[1] = posY & 0xFFF;
         }
     }
@@ -1429,13 +1450,23 @@ void SubmitPolygon()
         LastStripPolygon = NULL;
 }
 
+s32 CalcClipX(s64 x, s64 y, s64 z, s64 w)
+{
+    s64 result = (x*ClipMatrix[0] + y*ClipMatrix[4] + z*ClipMatrix[8] + w*ClipMatrix[12]);
+    if(!(DispCnt & 0x8000)) {
+        //FIXME: Properly align orthographic projections
+        result = (result*256)/GPU::WideScreenWidth;
+    }
+    return result >> 12;
+}
+
 void SubmitVertex()
 {
     s64 vertex[4] = {(s64)CurVertex[0], (s64)CurVertex[1], (s64)CurVertex[2], 0x1000};
     Vertex* vertextrans = &TempVertexBuffer[VertexNumInPoly];
 
     UpdateClipMatrix();
-    vertextrans->Position[0] = (vertex[0]*ClipMatrix[0] + vertex[1]*ClipMatrix[4] + vertex[2]*ClipMatrix[8] + vertex[3]*ClipMatrix[12]) >> 12;
+    vertextrans->Position[0] = CalcClipX(vertex[0], vertex[1], vertex[2], vertex[3]);
     vertextrans->Position[1] = (vertex[0]*ClipMatrix[1] + vertex[1]*ClipMatrix[5] + vertex[2]*ClipMatrix[9] + vertex[3]*ClipMatrix[13]) >> 12;
     vertextrans->Position[2] = (vertex[0]*ClipMatrix[2] + vertex[1]*ClipMatrix[6] + vertex[2]*ClipMatrix[10] + vertex[3]*ClipMatrix[14]) >> 12;
     vertextrans->Position[3] = (vertex[0]*ClipMatrix[3] + vertex[1]*ClipMatrix[7] + vertex[2]*ClipMatrix[11] + vertex[3]*ClipMatrix[15]) >> 12;
@@ -1638,7 +1669,7 @@ void BoxTest(u32* params)
         s32 y = cube[i].Position[1];
         s32 z = cube[i].Position[2];
 
-        cube[i].Position[0] = ((s64)x*ClipMatrix[0] + (s64)y*ClipMatrix[4] + (s64)z*ClipMatrix[8] + (s64)0x1000*ClipMatrix[12]) >> 12;
+        cube[i].Position[0] = CalcClipX(x, y, z, 0x1000);
         cube[i].Position[1] = ((s64)x*ClipMatrix[1] + (s64)y*ClipMatrix[5] + (s64)z*ClipMatrix[9] + (s64)0x1000*ClipMatrix[13]) >> 12;
         cube[i].Position[2] = ((s64)x*ClipMatrix[2] + (s64)y*ClipMatrix[6] + (s64)z*ClipMatrix[10] + (s64)0x1000*ClipMatrix[14]) >> 12;
         cube[i].Position[3] = ((s64)x*ClipMatrix[3] + (s64)y*ClipMatrix[7] + (s64)z*ClipMatrix[11] + (s64)0x1000*ClipMatrix[15]) >> 12;
@@ -1704,7 +1735,7 @@ void PosTest()
     s64 vertex[4] = {(s64)CurVertex[0], (s64)CurVertex[1], (s64)CurVertex[2], 0x1000};
 
     UpdateClipMatrix();
-    PosTestResult[0] = (vertex[0]*ClipMatrix[0] + vertex[1]*ClipMatrix[4] + vertex[2]*ClipMatrix[8] + vertex[3]*ClipMatrix[12]) >> 12;
+    PosTestResult[0] = CalcClipX(vertex[0], vertex[1], vertex[2], vertex[3]);
     PosTestResult[1] = (vertex[0]*ClipMatrix[1] + vertex[1]*ClipMatrix[5] + vertex[2]*ClipMatrix[9] + vertex[3]*ClipMatrix[13]) >> 12;
     PosTestResult[2] = (vertex[0]*ClipMatrix[2] + vertex[1]*ClipMatrix[6] + vertex[2]*ClipMatrix[10] + vertex[3]*ClipMatrix[14]) >> 12;
     PosTestResult[3] = (vertex[0]*ClipMatrix[3] + vertex[1]*ClipMatrix[7] + vertex[2]*ClipMatrix[11] + vertex[3]*ClipMatrix[15]) >> 12;
