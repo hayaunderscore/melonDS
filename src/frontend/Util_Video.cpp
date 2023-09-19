@@ -265,12 +265,12 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
                 if (HybEnable)
                 {
                     hybScale = layout == 0
-                        ? (GPU::WideScreenWidth * vSize) / (256 * hSize)
-                        : (GPU::WideScreenWidth * hSize) / (256 * vSize);
+                        ? (GPU::WideScreenWidth * vSize) / (192 * hSize)
+                        : (GPU::WideScreenWidth * hSize) / (192 * vSize);
                     if (layout == 0)
-                        hSize += (vSize * GPU::WideScreenWidth) / 256;
+                        hSize += (vSize * GPU::WideScreenWidth) / 192;
                     else
-                        vSize += (hSize * GPU::WideScreenWidth) / 256;
+                        vSize += (hSize * GPU::WideScreenWidth) / 192;
                 }
 
                 // scale evenly
@@ -297,8 +297,8 @@ void SetupScreenLayout(int screenWidth, int screenHeight,
                 if (HybEnable)
                 {
                     float hybWidth = layout == 0
-                        ? (scale * vSize * 4) / 3
-                        : (scale * hSize * 4) / 3;
+                        ? (scale * vSize * GPU::WideScreenWidth) / 192
+                        : (scale * hSize * GPU::WideScreenWidth) / 192;
 
                     if (rotation > screenRot_90Deg)
                         hybWidth *= -1;
